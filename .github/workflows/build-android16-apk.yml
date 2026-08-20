@@ -45,7 +45,7 @@ jobs:
         with:
           gradle-version: "8.13"
 
-      - name: Reconstruct project archive
+      - name: Reconstruct and patch project
         shell: bash
         run: |
           rm -f payload_bin/part_01.bin fixes/part01/part_01.bin
@@ -57,6 +57,7 @@ jobs:
           mkdir extracted
           unzip -q project.zip -d extracted
           cp fixes/source/app-build.gradle.kts extracted/PrivateGalleryCapCutBridge/app/build.gradle.kts
+          cp fixes/source/styles.xml extracted/PrivateGalleryCapCutBridge/app/src/main/res/values/styles.xml
 
       - name: Build debug APK
         id: android_build
