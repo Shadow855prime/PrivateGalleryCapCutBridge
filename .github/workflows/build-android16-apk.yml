@@ -5,7 +5,8 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - "project.zip.b64"
+      - "payload_bin/**"
+      - "fixes/**"
       - ".github/workflows/build-android16-apk.yml"
   pull_request:
     branches: [ "main" ]
@@ -44,18 +45,46 @@ jobs:
         with:
           gradle-version: "8.13"
 
-      - name: Decode project archive
+      - name: Reconstruct and patch project
         shell: bash
         run: |
-          base64 --decode project.zip.b64 > project.zip
+          rm -f payload_bin/part_01.bin fixes/part01/part_01.bin
+          for f in fixes/part01/p_*.b64; do base64 --decode "$f"; done > fixes/part01/part_01.bin
+          echo "3b789ad2bee977439ea471fa7e0140b0011eeb1bce6c291bd4316267e89c45b6  fixes/part01/part_01.bin" | sha256sum --check -
+          cp fixes/part01/part_01.bin payload_bin/part_01.bin
+          cat payload_bin/part_*.bin > project.zip
           echo "ec7cf87e02ace994c77135200301941a3804e4660fcf8ff97af2f92790888cd4  project.zip" | sha256sum --check -
           mkdir extracted
           unzip -q project.zip -d extracted
+          cp fixes/source/app-build.gradle.kts extracted/PrivateGalleryCapCutBridge/app/build.gradle.kts
+          cp fixes/source/styles.xml extracted/PrivateGalleryCapCutBridge/app/src/main/res/values/styles.xml
+          BRIDGE_APP="extracted/PrivateGalleryCapCutBridge/app/src/main/java/com/nexlynn/capcutbridge/BridgeApp.kt"
+          sed -i '/import androidx.compose.foundation.layout.weight/d' "$BRIDGE_APP"
+          sed -i 's/import androidx.compose.runtime.rememberSaveable/import androidx.compose.runtime.saveable.rememberSaveable/' "$BRIDGE_APP"
 
       - name: Build debug APK
+        id: android_build
+        continue-on-error: true
         working-directory: extracted/PrivateGalleryCapCutBridge
         shell: bash
-        run: gradle --no-daemon --stacktrace :app:assembleDebug
+        run: gradle --no-daemon --stacktrace :app:assembleDebug > ../../android-build.log 2>&1
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-log
+          path: android-build.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Report build failure
+        if: steps.android_build.outcome != 'success'
+        shell: bash
+        run: |
+          echo "Android build failed. Last 250 log lines:"
+          tail -n 250 android-build.log
+          exit 1
 
       - name: Verify and stage APK
         shell: bash
@@ -63,12 +92,15 @@ jobs:
           test -f extracted/PrivateGalleryCapCutBridge/app/build/outputs/apk/debug/app-debug.apk
           cp extracted/PrivateGalleryCapCutBridge/app/build/outputs/apk/debug/app-debug.apk PrivateGalleryCapCutBridge-Android16-debug.apk
           ls -lh PrivateGalleryCapCutBridge-Android16-debug.apk
+          sha256sum PrivateGalleryCapCutBridge-Android16-debug.apk > PrivateGalleryCapCutBridge-Android16-debug.apk.sha256
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: PrivateGalleryCapCutBridge-Android16-debug-apk
-          path: PrivateGalleryCapCutBridge-Android16-debug.apk
+          path: |
+            PrivateGalleryCapCutBridge-Android16-debug.apk
+            PrivateGalleryCapCutBridge-Android16-debug.apk.sha256
           if-no-files-found: error
           retention-days: 30
 
