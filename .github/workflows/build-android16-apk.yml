@@ -6,6 +6,7 @@ on:
     branches: [ "main" ]
     paths:
       - "payload_bin/**"
+      - "fixes/**"
       - ".github/workflows/build-android16-apk.yml"
   pull_request:
     branches: [ "main" ]
@@ -47,6 +48,7 @@ jobs:
       - name: Reconstruct project archive
         shell: bash
         run: |
+          base64 --decode fixes/part_01_exact.b64 > payload_bin/part_01.bin
           cat payload_bin/part_*.bin > project.zip
           echo "ec7cf87e02ace994c77135200301941a3804e4660fcf8ff97af2f92790888cd4  project.zip" | sha256sum --check -
           mkdir extracted
