@@ -58,9 +58,28 @@ jobs:
           unzip -q project.zip -d extracted
 
       - name: Build debug APK
+        id: android_build
+        continue-on-error: true
         working-directory: extracted/PrivateGalleryCapCutBridge
         shell: bash
-        run: gradle --no-daemon --stacktrace :app:assembleDebug
+        run: gradle --no-daemon --stacktrace :app:assembleDebug > ../../../android-build.log 2>&1
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-log
+          path: android-build.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Report build failure
+        if: steps.android_build.outcome != 'success'
+        shell: bash
+        run: |
+          echo "Android build failed. Last 250 log lines:"
+          tail -n 250 android-build.log
+          exit 1
 
       - name: Verify and stage APK
         shell: bash
