@@ -56,6 +56,7 @@ jobs:
           echo "ec7cf87e02ace994c77135200301941a3804e4660fcf8ff97af2f92790888cd4  project.zip" | sha256sum --check -
           mkdir extracted
           unzip -q project.zip -d extracted
+          cp fixes/source/app-build.gradle.kts extracted/PrivateGalleryCapCutBridge/app/build.gradle.kts
 
       - name: Build debug APK
         id: android_build
