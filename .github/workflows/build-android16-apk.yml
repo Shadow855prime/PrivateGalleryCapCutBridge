@@ -7,6 +7,8 @@ on:
     paths:
       - "project.zip.b64"
       - ".github/workflows/build-android16-apk.yml"
+  pull_request:
+    branches: [ "main" ]
 
 permissions:
   contents: read
