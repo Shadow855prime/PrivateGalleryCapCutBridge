@@ -5,7 +5,7 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - "payload/**"
+      - "payload_bin/**"
       - ".github/workflows/build-android16-apk.yml"
   pull_request:
     branches: [ "main" ]
@@ -44,11 +44,10 @@ jobs:
         with:
           gradle-version: "8.13"
 
-      - name: Decode project archive
+      - name: Reconstruct project archive
         shell: bash
         run: |
-          cat payload/part_*.b64 > project.zip.b64.rebuilt
-          base64 --decode project.zip.b64.rebuilt > project.zip
+          cat payload_bin/part_*.bin > project.zip
           echo "ec7cf87e02ace994c77135200301941a3804e4660fcf8ff97af2f92790888cd4  project.zip" | sha256sum --check -
           mkdir extracted
           unzip -q project.zip -d extracted
