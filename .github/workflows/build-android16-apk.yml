@@ -62,7 +62,7 @@ jobs:
         continue-on-error: true
         working-directory: extracted/PrivateGalleryCapCutBridge
         shell: bash
-        run: gradle --no-daemon --stacktrace :app:assembleDebug > ../../../android-build.log 2>&1
+        run: gradle --no-daemon --stacktrace :app:assembleDebug > ../../android-build.log 2>&1
 
       - name: Upload build log
         if: always()
