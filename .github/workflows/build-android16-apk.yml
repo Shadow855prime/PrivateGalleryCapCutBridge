@@ -1,0 +1,79 @@
+name: Build Android 16 APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "project.zip.b64"
+      - ".github/workflows/build-android16-apk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK licenses
+        shell: bash
+        run: yes | sdkmanager --licenses >/dev/null || true
+
+      - name: Install Android 16 SDK
+        shell: bash
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools"
+
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+
+      - name: Decode project archive
+        shell: bash
+        run: |
+          base64 --decode project.zip.b64 > project.zip
+          echo "ec7cf87e02ace994c77135200301941a3804e4660fcf8ff97af2f92790888cd4  project.zip" | sha256sum --check -
+          mkdir extracted
+          unzip -q project.zip -d extracted
+
+      - name: Build debug APK
+        working-directory: extracted/PrivateGalleryCapCutBridge
+        shell: bash
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Verify and stage APK
+        shell: bash
+        run: |
+          test -f extracted/PrivateGalleryCapCutBridge/app/build/outputs/apk/debug/app-debug.apk
+          cp extracted/PrivateGalleryCapCutBridge/app/build/outputs/apk/debug/app-debug.apk PrivateGalleryCapCutBridge-Android16-debug.apk
+          ls -lh PrivateGalleryCapCutBridge-Android16-debug.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrivateGalleryCapCutBridge-Android16-debug-apk
+          path: PrivateGalleryCapCutBridge-Android16-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload source project artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrivateGalleryCapCutBridge-Android16-source
+          path: project.zip
+          if-no-files-found: error
+          retention-days: 30
