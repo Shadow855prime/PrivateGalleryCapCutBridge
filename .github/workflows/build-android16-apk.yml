@@ -58,6 +58,9 @@ jobs:
           unzip -q project.zip -d extracted
           cp fixes/source/app-build.gradle.kts extracted/PrivateGalleryCapCutBridge/app/build.gradle.kts
           cp fixes/source/styles.xml extracted/PrivateGalleryCapCutBridge/app/src/main/res/values/styles.xml
+          BRIDGE_APP="extracted/PrivateGalleryCapCutBridge/app/src/main/java/com/nexlynn/capcutbridge/BridgeApp.kt"
+          sed -i '/import androidx.compose.foundation.layout.weight/d' "$BRIDGE_APP"
+          sed -i 's/import androidx.compose.runtime.rememberSaveable/import androidx.compose.runtime.saveable.rememberSaveable/' "$BRIDGE_APP"
 
       - name: Build debug APK
         id: android_build
@@ -89,12 +92,15 @@ jobs:
           test -f extracted/PrivateGalleryCapCutBridge/app/build/outputs/apk/debug/app-debug.apk
           cp extracted/PrivateGalleryCapCutBridge/app/build/outputs/apk/debug/app-debug.apk PrivateGalleryCapCutBridge-Android16-debug.apk
           ls -lh PrivateGalleryCapCutBridge-Android16-debug.apk
+          sha256sum PrivateGalleryCapCutBridge-Android16-debug.apk > PrivateGalleryCapCutBridge-Android16-debug.apk.sha256
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: PrivateGalleryCapCutBridge-Android16-debug-apk
-          path: PrivateGalleryCapCutBridge-Android16-debug.apk
+          path: |
+            PrivateGalleryCapCutBridge-Android16-debug.apk
+            PrivateGalleryCapCutBridge-Android16-debug.apk.sha256
           if-no-files-found: error
           retention-days: 30
 
